@@ -26,6 +26,7 @@
 
 import UIKit
 
+
 public protocol BTNavigationDropdownMenuDelegate {
     func willOpenMenu()
     func willCloseMenu()
