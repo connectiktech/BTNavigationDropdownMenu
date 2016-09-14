@@ -255,7 +255,7 @@ public class BTNavigationDropdownMenu: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    public init(navigationController: UINavigationController? = nil, containerView: UIView = UIApplication.sharedApplication().keyWindow!, title: String, items: [AnyObject]) {
+    public init(navigationController: UINavigationController? = nil, containerView: UIView = UIApplication.sharedApplication().keyWindow!, title: String, items: [AnyObject], selectedIndex: Int? = 0) {
         // Key window
         guard let window = UIApplication.sharedApplication().keyWindow else {
             super.init(frame: CGRectZero)
