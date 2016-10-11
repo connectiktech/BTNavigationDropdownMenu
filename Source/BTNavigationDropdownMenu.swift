@@ -26,8 +26,15 @@
 
 import UIKit
 
+public protocol BTNavigationDropdownMenuDelegate: class {
+    func willOpenMenu()
+    func willCloseMenu()
+}
+
 // MARK: BTNavigationDropdownMenu
 open class BTNavigationDropdownMenu: UIView {
+    
+    public weak var delegate: BTNavigationDropdownMenuDelegate?
     
     // The color of menu title. Default is darkGrayColor()
     open var menuTitleColor: UIColor! {
@@ -220,6 +227,16 @@ open class BTNavigationDropdownMenu: UIView {
         }
     }
     
+    public var selectedIndex: Int? {
+        get {
+            return self.tableView.selectedIndex
+        }
+        set(value) {
+            self.tableView.selectedIndex = selectedIndex
+            self.tableView.reloadData()
+        }
+    }
+    
     open var didSelectItemAtIndexHandler: ((_ indexPath: Int) -> ())?
     open var isShown: Bool!
 
@@ -238,7 +255,7 @@ open class BTNavigationDropdownMenu: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    public init(navigationController: UINavigationController? = nil, containerView: UIView = UIApplication.shared.keyWindow!, title: String, items: [AnyObject]) {
+    public init(navigationController: UINavigationController? = nil, containerView: UIView = UIApplication.shared.keyWindow!, title: String, items: [AnyObject], selectedIndex: Int? = nil) {
         // Key window
         guard let window = UIApplication.shared.keyWindow else {
             super.init(frame: CGRect.zero)
@@ -299,16 +316,16 @@ open class BTNavigationDropdownMenu: UIView {
         // Init table view
         let navBarHeight = self.navigationController?.navigationBar.bounds.size.height ?? 0
         let statusBarHeight = UIApplication.shared.statusBarFrame.height 
-        self.tableView = BTTableView(frame: CGRect(x: menuWrapperBounds.origin.x, y: menuWrapperBounds.origin.y + 0.5, width: menuWrapperBounds.width, height: menuWrapperBounds.height + 300 - navBarHeight - statusBarHeight), items: items, title: title, configuration: self.configuration)
+        self.tableView = BTTableView(frame: CGRect(x: menuWrapperBounds.origin.x, y: menuWrapperBounds.origin.y + 0.5, width: menuWrapperBounds.width, height: menuWrapperBounds.height + 300 - navBarHeight - statusBarHeight), items: items, selectedIndex: selectedIndex, configuration: self.configuration)
         
         self.tableView.selectRowAtIndexPathHandler = { [weak self] (indexPath: Int) -> () in
             guard let selfie = self else {
                 return
             }
-            selfie.didSelectItemAtIndexHandler!(indexPath)
             if selfie.shouldChangeTitleText! {
                 selfie.setMenuTitle("\(selfie.tableView.items[indexPath])")
             }
+            selfie.didSelectItemAtIndexHandler!(indexPath)
             self?.hideMenu()
             self?.layoutSubviews()
         }
@@ -376,6 +393,8 @@ open class BTNavigationDropdownMenu: UIView {
     }
     
     func showMenu() {
+        delegate?.willOpenMenu()
+        
         self.menuWrapper.frame.origin.y = self.navigationController!.navigationBar.frame.maxY
         
         self.isShown = true
@@ -418,6 +437,8 @@ open class BTNavigationDropdownMenu: UIView {
     }
     
     func hideMenu() {
+        delegate?.willCloseMenu()
+        
         // Rotate arrow
         self.rotateArrow()
         
@@ -460,7 +481,7 @@ open class BTNavigationDropdownMenu: UIView {
             })
     }
     
-    func setMenuTitle(_ title: String) {
+    public func setMenuTitle(_ title: String) {
         self.menuTitle.text = title
     }
     
@@ -535,17 +556,17 @@ class BTTableView: UITableView, UITableViewDelegate, UITableViewDataSource {
     
     // Private properties
     fileprivate var items: [AnyObject]!
-    fileprivate var selectedIndexPath: Int?
+    fileprivate var selectedIndex: Int?
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    init(frame: CGRect, items: [AnyObject], title: String, configuration: BTConfiguration) {
+    init(frame: CGRect, items: [AnyObject], selectedIndex: Int?, configuration: BTConfiguration) {
         super.init(frame: frame, style: UITableViewStyle.plain)
         
         self.items = items
-        self.selectedIndexPath = (items as! [String]).index(of: title)
+        self.selectedIndex = selectedIndex
         self.configuration = configuration
         
         // Setup table view
@@ -581,13 +602,13 @@ class BTTableView: UITableView, UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = BTTableViewCell(style: UITableViewCellStyle.default, reuseIdentifier: "Cell", configuration: self.configuration)
         cell.textLabel?.text = self.items[(indexPath as NSIndexPath).row] as? String
-        cell.checkmarkIcon.isHidden = ((indexPath as NSIndexPath).row == selectedIndexPath) ? false : true
+        cell.checkmarkIcon.isHidden = ((indexPath as NSIndexPath).row == selectedIndex) ? false : true
         return cell
     }
     
     // Table view delegate
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        selectedIndexPath = (indexPath as NSIndexPath).row
+        selectedIndex = (indexPath as NSIndexPath).row
         self.selectRowAtIndexPathHandler!((indexPath as NSIndexPath).row)
         self.reloadData()
         let cell = tableView.cellForRow(at: indexPath) as? BTTableViewCell
@@ -605,7 +626,7 @@ class BTTableView: UITableView, UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         if self.configuration.shouldKeepSelectedCellColor == true {
             cell.backgroundColor = self.configuration.cellBackgroundColor
-            cell.contentView.backgroundColor = ((indexPath as NSIndexPath).row == selectedIndexPath) ? self.configuration.cellSelectionColor : self.configuration.cellBackgroundColor
+            cell.contentView.backgroundColor = ((indexPath as NSIndexPath).row == selectedIndex) ? self.configuration.cellSelectionColor : self.configuration.cellBackgroundColor
         }
     }
 }
